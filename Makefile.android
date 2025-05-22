@@ -1,31 +1,26 @@
 # Makefile.android for keyd
-# Cross-compiles keyd and its tools for Android (aarch64)
+# Cross-compiles only the core keyd program for Android (aarch64)
 
 ### 用户配置变量 (请根据您的环境修改) ###
 # -----------------------------------------------------------------------------
 # Android NDK 根目录 (请修改为您的实际路径)
-NDK_ROOT = $(HOME)/Android/sdk/ndk/28.1.13356709
+NDK_ROOT  = $(HOME)/Android/sdk/ndk/28.1.13356709
 
 # 应用版本号 (例如：2.4.4-android)
 APP_VERSION ?= 2.5.0-custom-android
 
 # 选择虚拟键盘后端: uinput (默认) 或 stdout
-# 使用方法: make ANDROID_VKBD_BACKEND=stdout
 ANDROID_VKBD_BACKEND ?= uinput
 
 # 是否编译调试版本: 0 (关闭, 默认) 或 1 (开启)
-# 使用方法: make DEBUG=1
 DEBUG ?= 0
 
 # 是否静态链接并裁剪所有可执行文件: 0 (关闭, 默认) 或 1 (开启)
-# 开启后会使用 -static -s -fuse-ld=lld
-# 使用方法: make STATIC_LINK=1
 STATIC_LINK ?= 0
 # -----------------------------------------------------------------------------
 
 ### 工具链和目标平台配置 ###
 # -----------------------------------------------------------------------------
-# 根据宿主机系统确定 NDK 工具链的 prebuilt 目录标签
 UNAME_S := $(shell uname -s)
 
 ifeq ($(UNAME_S), Darwin)
@@ -33,7 +28,6 @@ ifeq ($(UNAME_S), Darwin)
 else ifeq ($(UNAME_S), Linux)
   NDK_HOST_TAG = linux-x86_64
 else
-  # 可以为其他系统添加支持，或者报错
   $(warning "Unsupported host system: $(UNAME_S). Assuming linux-x86_64 for NDK_HOST_TAG.")
   NDK_HOST_TAG = linux-x86_64
 endif
@@ -49,7 +43,6 @@ STRIP     := $(TOOLCHAIN)/bin/llvm-strip
 
 ### 安装和输出路径 ###
 # -----------------------------------------------------------------------------
-# 安装目标 (例如：Magisk 模块的临时目录)
 PREFIX    ?= $(PWD)/out
 BIN_DIR   := $(PREFIX)/system/bin
 CONFIG_DIR_INSTALL := $(PREFIX)/system/etc/keyd
@@ -76,14 +69,12 @@ LDFLAGS_COMMON := \
   -pthread \
   --sysroot=$(SYSROOT)
 
-# 根据 DEBUG 标志调整 CFLAGS 和 LDFLAGS
 ifeq ($(DEBUG), 1)
   CFLAGS_COMMON += -g -O0 -DDEBUG_BUILD
 else
   CFLAGS_COMMON += -O2
 endif
 
-# 根据 ANDROID_VKBD_BACKEND 标志调整 CFLAGS
 ifeq ($(ANDROID_VKBD_BACKEND), uinput)
   CFLAGS_COMMON += -DHAS_UINPUT
 else ifeq ($(ANDROID_VKBD_BACKEND), stdout)
@@ -92,50 +83,32 @@ else
   $(error "Unsupported ANDROID_VKBD_BACKEND: $(ANDROID_VKBD_BACKEND). Choose 'uinput' or 'stdout'.")
 endif
 
-# 根据 STATIC_LINK 标志调整 LDFLAGS
 ifeq ($(STATIC_LINK), 1)
   LDFLAGS_COMMON += -static -s -fuse-ld=lld
 endif
 # -----------------------------------------------------------------------------
 
-### 源文件定义 ###
+### 源文件和输出目标定义 ###
 # -----------------------------------------------------------------------------
-# keyd 核心的通用源文件 (不包括测试文件)
-# 注意: $(wildcard src/*.c) 不会包含 src/vkbd/ 目录下的文件
+# keyd 核心
 KEYD_COMMON_SRCS := $(filter-out src/%_test.c,$(wildcard src/*.c))
-
-# keyd 完整源文件列表 (包含选择的后端)
 KEYD_SRCS := $(KEYD_COMMON_SRCS)
 ifeq ($(ANDROID_VKBD_BACKEND), uinput)
   KEYD_SRCS += src/vkbd/uinput.c
 else ifeq ($(ANDROID_VKBD_BACKEND), stdout)
   KEYD_SRCS += src/vkbd/stdout.c
 endif
-KEYD_OBJS := $(patsubst %.c,$(PWD)/obj/%.o,$(KEYD_SRCS)) # 将对象文件放入 obj 子目录
+KEYD_OBJS     := $(patsubst %.c,$(PWD)/obj/%.o,$(KEYD_SRCS))
+KEYD_OUT      := $(PWD)/bin/keyd
 
-# 工具源文件
-VALIDATOR_SRC := src/tools/keyd-application-validator.c
-CONVERTER_SRC := src/tools/keyd-unicode-converter.c
-# -----------------------------------------------------------------------------
-
-### 输出目标定义 ###
-# -----------------------------------------------------------------------------
-KEYD_OUT          := $(PWD)/bin/keyd
-VALIDATOR_OUT     := $(PWD)/bin/keyd-application-validator
-CONVERTER_OUT     := $(PWD)/bin/keyd-unicode-converter
-
-TARGETS           := $(KEYD_OUT) $(VALIDATOR_OUT) $(CONVERTER_OUT)
+TARGETS           := $(KEYD_OUT)
 # -----------------------------------------------------------------------------
 
 ### 构建规则 ###
 # -----------------------------------------------------------------------------
-.PHONY: all install clean keyd_bins tools
+.PHONY: all install clean
 
-all: keyd_bins tools
-
-keyd_bins: $(KEYD_OUT)
-
-tools: $(VALIDATOR_OUT) $(CONVERTER_OUT)
+all: $(KEYD_OUT)
 
 # keyd 对象文件编译规则
 $(PWD)/obj/%.o: %.c
@@ -149,30 +122,6 @@ $(KEYD_OUT): $(KEYD_OBJS)
 	@echo "LD $@"
 	$(CC) $(LDFLAGS_COMMON) $^ -o $@
 ifeq ($(DEBUG), 0)
-ifeq ($(STATIC_LINK), 0) # 只在非调试且非静态链接（未通过 LDFLAGS -s 裁剪）时显式 strip
-	@echo "STRIP $@"
-	$(STRIP) $@
-endif
-endif
-
-# keyd-application-validator 编译和链接规则
-$(VALIDATOR_OUT): $(VALIDATOR_SRC)
-	@mkdir -p $(@D)
-	@echo "CCLD $@"
-	$(CC) $(CFLAGS_COMMON) $(LDFLAGS_COMMON) $^ -o $@
-ifeq ($(DEBUG), 0)
-ifeq ($(STATIC_LINK), 0)
-	@echo "STRIP $@"
-	$(STRIP) $@
-endif
-endif
-
-# keyd-unicode-converter 编译和链接规则
-$(CONVERTER_OUT): $(CONVERTER_SRC)
-	@mkdir -p $(@D)
-	@echo "CCLD $@"
-	$(CC) $(CFLAGS_COMMON) $(LDFLAGS_COMMON) $^ -o $@
-ifeq ($(DEBUG), 0)
 ifeq ($(STATIC_LINK), 0)
 	@echo "STRIP $@"
 	$(STRIP) $@
@@ -185,18 +134,17 @@ endif
 install: all
 	@echo ">> Installing to $(PREFIX)…"
 	install -Dm755 $(KEYD_OUT) $(BIN_DIR)/keyd
-	install -Dm755 $(VALIDATOR_OUT) $(BIN_DIR)/keyd-application-validator
-	install -Dm755 $(CONVERTER_OUT) $(BIN_DIR)/keyd-unicode-converter
+	# layouts/default.conf 文件是 keyd 运行时可能需要的，建议保留安装
+	# 如果您确定不需要，也可以移除下面这行
 	install -Dm644 layouts/default.conf $(CONFIG_DIR_INSTALL)/default.conf
 	@echo ">> Installation complete."
 
 clean:
 	@echo ">> Cleaning build artifacts..."
-	rm -rf $(PWD)/obj $(PWD)/bin $(TARGETS)
+	rm -rf $(PWD)/obj $(PWD)/bin
 	@echo ">> Clean complete."
 # -----------------------------------------------------------------------------
 
-# 提示 NDK_ROOT 未设置 (可选)
 ifeq ($(NDK_ROOT), )
 $(warning NDK_ROOT is not set. Please set it to your Android NDK path.)
 $(warning Example: export NDK_ROOT=/path/to/your/android-ndk)
