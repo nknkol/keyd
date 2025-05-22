@@ -1,0 +1,46 @@
+# ===== ❶ 路径变量（按自己机器修改） =====
+NDK_ROOT  = $(HOME)/Android/sdk/ndk/28.1.13356709
+TOOLCHAIN = $(NDK_ROOT)/toolchains/llvm/prebuilt/darwin-x86_64
+PREFIX    = $(PWD)/out                     # 安装目标（Magisk 模块临时目录）
+
+# ===== ❷ 工具链 =====
+SYSROOT := $(TOOLCHAIN)/sysroot
+CC      := $(TOOLCHAIN)/bin/aarch64-linux-android21-clang
+AR      := $(TOOLCHAIN)/bin/llvm-ar
+STRIP   := $(TOOLCHAIN)/bin/llvm-strip
+
+# ===== ❸ 通用参数 =====
+CFLAGS_COMMON  := -O2 -pipe --sysroot=$(SYSROOT) -pthread -std=c11 -Wall -Wextra \
+  -DDEFAULT_SOURCE -D_FORTIFY_SOURCE=2 \
+  -DCONFIG_DIR=\"/etc/keyd\" \
+  -DDATA_DIR=\"/data/adb/keyd\" \
+  -DSOCKET_PATH=\"/data/local/tmp/keyd.sock\" \
+  -DVERSION=\"custom-android\"
+LDFLAGS_COMMON := -pthread --sysroot=$(SYSROOT)
+
+# 如需纯静态／最小体积：取消下一行注释
+LDFLAGS_COMMON += -static -s -fuse-ld=lld
+
+# ===== ❹ 源文件列表 =====
+SRCS := $(filter-out src/%_test.c,$(wildcard src/*.c)) src/vkbd/uinput.c
+OBJS := $(patsubst %.c,%.o,$(SRCS))
+
+# ===== ❺ 目标 =====
+bin/keyd: $(OBJS)
+	@mkdir -p $(@D)
+	$(CC) $(LDFLAGS_COMMON) $^ -o $@
+	$(STRIP) $@
+
+%.o: %.c
+	$(CC) $(CFLAGS_COMMON) -c $< -o $@
+
+.PHONY: all install clean
+all: bin/keyd
+
+install: all
+	@echo ">> Installing to $(PREFIX)…"
+	install -Dm755 bin/keyd            $(PREFIX)/system/bin/keyd
+	install -Dm644 layouts/default.conf $(PREFIX)/system/etc/keyd/default.conf
+
+clean:
+	rm -rf $(OBJS) bin/keyd
