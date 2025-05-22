@@ -7,7 +7,7 @@ on:
       ndk_version:
         description: 'Android NDK Version (e.g., r25c, r26d)'
         required: true
-        default: 'r28d' # 你可以设置一个常用的默认 NDK 版本
+        default: 'r28b' # 你可以设置一个常用的默认 NDK 版本
       keyd_app_version:
         description: 'APP_VERSION for keyd (e.g., 2.5.0-custom-android)'
         required: false
