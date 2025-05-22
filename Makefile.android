@@ -135,7 +135,6 @@ install: all
 	@echo ">> Installing to $(PREFIX)…"
 	install -Dm755 $(KEYD_OUT) $(BIN_DIR)/keyd
 	# layouts/default.conf 文件是 keyd 运行时可能需要的，建议保留安装
-	# 如果您确定不需要，也可以移除下面这行
 	install -Dm644 layouts/default.conf $(CONFIG_DIR_INSTALL)/default.conf
 	@echo ">> Installation complete."
 
