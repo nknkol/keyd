@@ -1,0 +1,72 @@
+name: Manual Android NDK Build
+
+# 控制 workflow 何时运行
+on:
+  workflow_dispatch: # 允许手动从 Actions 标签页触发
+    inputs:
+      ndk_version:
+        description: 'Android NDK Version (e.g., r25c, r26d)'
+        required: true
+        default: 'r26d' # 你可以设置一个常用的默认 NDK 版本
+      keyd_app_version:
+        description: 'APP_VERSION for keyd (e.g., 2.5.0-custom-android)'
+        required: false
+        default: '2.5.0-custom-android-ci' # CI 构建的默认版本号
+
+jobs:
+  build-android:
+    runs-on: ubuntu-latest # 使用最新的 Ubuntu 运行器
+
+    steps:
+      # 步骤 1: 检出你的代码库
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      # 步骤 2: 设置 Java 开发环境 (Android NDK 和工具链可能需要)
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          java-version: '17' # Android Gradle 插件通常需要较新的 JDK
+          distribution: 'temurin'
+
+      # 步骤 3: 安装 Android NDK
+      # 使用 nttld/setup-ndk Action 来下载和设置 NDK
+      # 它会自动将 NDK 路径添加到 PATH 并设置 ANDROID_NDK_HOME
+      - name: Setup Android NDK
+        id: setup-ndk # 给这个步骤一个 id，方便后续引用其输出
+        uses: nttld/setup-ndk@v1
+        with:
+          ndk-version: ${{ github.event.inputs.ndk_version }} # 使用手动触发时输入的 NDK 版本
+          # add-to-path: true # 默认为 true
+          # local-cache: true # 默认为 false，可以开启以缓存 NDK 加快后续构建
+
+      # (可选) 步骤 3.1: 验证 NDK 是否正确安装
+      - name: Verify NDK Installation
+        run: |
+          echo "NDK Path (from action output): ${{ steps.setup-ndk.outputs.ndk-path }}"
+          echo "ANDROID_NDK_HOME: $ANDROID_NDK_HOME"
+          ndk-build --version || echo "ndk-build not found or NDK not configured correctly"
+          # 如果你的 Makefile.android 不直接使用 ANDROID_NDK_HOME,
+          # 而是依赖于 NDK_ROOT，你可能需要在这里设置它:
+          echo "NDK_ROOT=${{ steps.setup-ndk.outputs.ndk-path }}" >> $GITHUB_ENV
+
+      # 步骤 4: 编译 keyd
+      # 假设 Makefile.android 在仓库根目录
+      # 传递 STATIC_LINK=1 和 APP_VERSION
+      - name: Build keyd for Android
+        run: |
+          echo "Starting make process..."
+          make -f Makefile.android \
+            STATIC_LINK=1 \
+            APP_VERSION="${{ github.event.inputs.keyd_app_version }}" \
+            NDK_ROOT="${{ steps.setup-ndk.outputs.ndk-path }}" # 明确传递 NDK_ROOT
+        # working-directory: ./ # 如果 Makefile 在子目录，请修改这里
+
+      # (可选) 步骤 5: 上传编译产物
+      # 假设编译后的 keyd 在 PWD/bin/keyd (根据你的 Makefile)
+      - name: Upload keyd binary
+        uses: actions/upload-artifact@v4
+        with:
+          name: keyd-android-aarch64-${{ github.event.inputs.keyd_app_version }}
+          path: bin/keyd # 确保这个路径与你的 Makefile 输出路径一致
+          if-no-files-found: error # 如果没有找到文件则报错
