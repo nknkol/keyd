@@ -4,7 +4,7 @@
 ### 用户配置变量 (请根据您的环境修改) ###
 # -----------------------------------------------------------------------------
 # Android NDK 根目录 (请修改为您的实际路径)
-NDK_ROOT  = $(HOME)/Android/sdk/ndk/28.1.13356709
+NDK_ROOT ?= $(HOME)/Android/sdk/ndk/28.1.13356709
 
 # 应用版本号 (例如：2.4.4-android)
 APP_VERSION ?= 2.5.0-custom-android
