@@ -4,11 +4,10 @@
 ### 用户配置变量 (请根据您的环境修改) ###
 # -----------------------------------------------------------------------------
 # Android NDK 根目录 (请修改为您的实际路径)
-NDK_ROOT ?= $(HOME)/Android/sdk/ndk/25.2.9519653 # 示例 NDK 版本路径，请替换
-# NDK_ROOT ?= $(HOME)/Android/sdk/ndk/28.1.13356709 # 另一个示例
+NDK_ROOT = $(HOME)/Android/sdk/ndk/28.1.13356709
 
 # 应用版本号 (例如：2.4.4-android)
-APP_VERSION ?= 2.4.4-custom-android
+APP_VERSION ?= 2.5.0-custom-android
 
 # 选择虚拟键盘后端: uinput (默认) 或 stdout
 # 使用方法: make ANDROID_VKBD_BACKEND=stdout
@@ -26,22 +25,22 @@ STATIC_LINK ?= 0
 
 ### 工具链和目标平台配置 ###
 # -----------------------------------------------------------------------------
-# 假设 NDK 预编译工具链在 darwin-x86_64 (macOS) 或 linux-x86_64 下
-# 您可能需要根据您的宿主机系统调整 'darwin-x86_64' 或 'linux-x86_64'
-HOST_ARCH := $(shell uname -s)-$(shell uname -m | sed 's/aarch64/arm64/')
-ifeq ($(HOST_ARCH), Darwin-x86_64)
+# 根据宿主机系统确定 NDK 工具链的 prebuilt 目录标签
+UNAME_S := $(shell uname -s)
+
+ifeq ($(UNAME_S), Darwin)
   NDK_HOST_TAG = darwin-x86_64
-else ifeq ($(HOST_ARCH), Darwin-arm64)
-  NDK_HOST_TAG = darwin-x86_64 # NDK for Apple Silicon often uses x86_64 toolchains via Rosetta or native arm64 ones
-                               # Check your NDK structure. Some NDKs have darwin-arm64 directly.
-                               # If NDK_ROOT/toolchains/llvm/prebuilt/darwin-arm64 exists, use that.
+else ifeq ($(UNAME_S), Linux)
+  NDK_HOST_TAG = linux-x86_64
 else
-  NDK_HOST_TAG = linux-x86_64 # 默认 Linux x86_64
+  # 可以为其他系统添加支持，或者报错
+  $(warning "Unsupported host system: $(UNAME_S). Assuming linux-x86_64 for NDK_HOST_TAG.")
+  NDK_HOST_TAG = linux-x86_64
 endif
 
 TOOLCHAIN := $(NDK_ROOT)/toolchains/llvm/prebuilt/$(NDK_HOST_TAG)
 SYSROOT   := $(TOOLCHAIN)/sysroot
-API_LEVEL := 21 # Android API Level
+API_LEVEL := 21
 
 CC        := $(TOOLCHAIN)/bin/aarch64-linux-android$(API_LEVEL)-clang
 AR        := $(TOOLCHAIN)/bin/llvm-ar
