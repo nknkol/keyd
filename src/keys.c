@@ -268,7 +268,7 @@ const struct keycode_table_ent keycode_table[512] = {
 	[KEYD_ZOOM] = { "zoom", NULL, NULL },
 	[KEYD_NOOP] = { "noop", NULL, NULL },
 	//测试
-	[KEYD_BTN_C]      = { "btn_c", NULL, NULL },
+	[KEYD_BTN_C]      = { "btnc", NULL, NULL },
 };
 
 const char *modstring(uint8_t mods)
