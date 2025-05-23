@@ -271,7 +271,9 @@ struct modifier {
 #define KEYD_WWAN              246
 #define KEYD_RFKILL            247
 #define KEYD_MICMUTE           248
-
+//测试
+/* Gamepad Buttons - Added for Retroid Pocket Controller */
+#define KEYD_BTN_C             256
 /* These deviate from uinput codes. */
 
 #define  KEYD_NOOP             		195
@@ -294,6 +296,6 @@ int parse_modset(const char *s, uint8_t *mods);
 int parse_key_sequence(const char *s, uint8_t *code, uint8_t *mods);
 
 extern const struct modifier modifiers[MAX_MOD];
-extern const struct keycode_table_ent keycode_table[256];
+extern const struct keycode_table_ent keycode_table[512];
 
 #endif

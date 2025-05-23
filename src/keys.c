@@ -15,7 +15,7 @@ const struct modifier modifiers[MAX_MOD] = {
 	{MOD_CTRL, KEYD_LEFTCTRL},
 };
 
-const struct keycode_table_ent keycode_table[256] = {
+const struct keycode_table_ent keycode_table[512] = {
 	[KEYD_ESC] = { "esc", "escape", NULL },
 	[KEYD_1] = { "1", NULL, "!" },
 	[KEYD_2] = { "2", NULL, "@" },
@@ -267,6 +267,8 @@ const struct keycode_table_ent keycode_table[256] = {
 	[KEYD_FN] = { "fn", NULL, NULL },
 	[KEYD_ZOOM] = { "zoom", NULL, NULL },
 	[KEYD_NOOP] = { "noop", NULL, NULL },
+	//测试
+	[KEYD_BTN_C]      = { "btn_c", NULL, NULL },
 };
 
 const char *modstring(uint8_t mods)
