@@ -15,7 +15,7 @@ const struct modifier modifiers[MAX_MOD] = {
 	{MOD_CTRL, KEYD_LEFTCTRL},
 };
 
-const struct keycode_table_ent keycode_table[512] = {
+const struct keycode_table_ent keycode_table[STANDARD_KEYCODE_MAX] = {
 	[KEYD_ESC] = { "esc", "escape", NULL },
 	[KEYD_1] = { "1", NULL, "!" },
 	[KEYD_2] = { "2", NULL, "@" },
@@ -268,9 +268,28 @@ const struct keycode_table_ent keycode_table[512] = {
 	[KEYD_ZOOM] = { "zoom", NULL, NULL },
 	[KEYD_NOOP] = { "noop", NULL, NULL },
 	//测试
-	[KEYD_BTN_C]      = { "btnc", NULL, NULL },
+	// [KEYD_BTN_C]      = { "btnc", NULL, NULL },
 };
 
+// 新增一个自定义键码表
+const struct keycode_table_ent custom_keycode_table[] = {
+    [0] = { "btnc", "button_c", NULL },        // 对应 KEYD_BTN_C
+};
+
+#define CUSTOM_KEYCODE_COUNT (sizeof(custom_keycode_table) / sizeof(custom_keycode_table[0]))
+
+const char* get_key_name(uint16_t code) {
+
+    if (code < STANDARD_KEYCODE_MAX) {
+
+        return keycode_table[code].name ? keycode_table[code].name : "UNKNOWN";
+    } else if (code >= CUSTOM_KEYCODE_BASE && code < CUSTOM_KEYCODE_BASE + CUSTOM_KEYCODE_COUNT) {
+        int idx = code - CUSTOM_KEYCODE_BASE;
+               custom_keycode_table[idx].name ? custom_keycode_table[idx].name : "NULL");
+        return custom_keycode_table[idx].name ? custom_keycode_table[idx].name : "UNKNOWN";
+    }
+    return "UNKNOWN";
+}
 const char *modstring(uint8_t mods)
 {
 	static char s[16];
@@ -380,36 +399,75 @@ int parse_key_sequence(const char *s, uint8_t *codep, uint8_t *modsp)
 		c += 2;
 	}
 
-	for (i = 0; i < 256; i++) {
-		const struct keycode_table_ent *ent = &keycode_table[i];
+// 	for (i = 0; i < STANDARD_KEYCODE_MAX; i++) {
+// 		const struct keycode_table_ent *ent = &keycode_table[i];
 
-		if (ent->name) {
-			if (ent->shifted_name &&
-			    !strcmp(ent->shifted_name, c)) {
+// 		if (ent->name) {
+// 			if (ent->shifted_name &&
+// 			    !strcmp(ent->shifted_name, c)) {
 
-				mods |= MOD_SHIFT;
+// 				mods |= MOD_SHIFT;
 
-				if (modsp)
-					*modsp = mods;
+// 				if (modsp)
+// 					*modsp = mods;
 
-				if (codep)
-					*codep = i;
+// 				if (codep)
+// 					*codep = i;
 
-				return 0;
-			} else if (!strcmp(ent->name, c) ||
-				   (ent->alt_name && !strcmp(ent->alt_name, c))) {
+// 				return 0;
+// 			} else if (!strcmp(ent->name, c) ||
+// 				   (ent->alt_name && !strcmp(ent->alt_name, c))) {
 
-				if (modsp)
-					*modsp = mods;
+// 				if (modsp)
+// 					*modsp = mods;
 
-				if (codep)
-					*codep = i;
+// 				if (codep)
+// 					*codep = i;
 
-				return 0;
-			}
-		}
-	}
+// 				return 0;
+// 			}
+// 		}
+// 	}
 
-	return -1;
+// 	return -1;
+// }
+    // 首先搜索标准键码表
+    for (i = 0; i < STANDARD_KEYCODE_MAX; i++) {
+        const struct keycode_table_ent *ent = &keycode_table[i];
+
+        if (ent->name) {
+            if (ent->shifted_name && !strcmp(ent->shifted_name, c)) {
+                mods |= MOD_SHIFT;
+                if (modsp) *modsp = mods;
+                if (codep) *codep = i;
+                return 0;
+            } else if (!strcmp(ent->name, c) || 
+                       (ent->alt_name && !strcmp(ent->alt_name, c))) {
+                if (modsp) *modsp = mods;
+                if (codep) *codep = i;
+                return 0;
+            }
+        }
+    }
+
+    // 然后搜索自定义键码表
+    for (i = 0; i < CUSTOM_KEYCODE_COUNT; i++) {
+        const struct keycode_table_ent *ent = &custom_keycode_table[i];
+
+        if (ent->name) {
+            if (ent->shifted_name && !strcmp(ent->shifted_name, c)) {
+                mods |= MOD_SHIFT;
+                if (modsp) *modsp = mods;
+                if (codep) *codep = CUSTOM_KEYCODE_BASE + i;
+                return 0;
+            } else if (!strcmp(ent->name, c) || 
+                       (ent->alt_name && !strcmp(ent->alt_name, c))) {
+                if (modsp) *modsp = mods;
+                if (codep) *codep = CUSTOM_KEYCODE_BASE + i;
+                return 0;
+            }
+        }
+    }
+
+    return -1;
 }
-

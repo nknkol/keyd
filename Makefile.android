@@ -7,7 +7,7 @@
 NDK_ROOT ?= $(HOME)/Android/sdk/ndk/28.1.13356709
 
 # 应用版本号 (例如：2.4.4-android)
-APP_VERSION ?= 2.5.0-custom-android
+APP_VERSION ?= 2.5.3-custom-bate
 
 # 选择虚拟键盘后端: uinput (默认) 或 stdout
 ANDROID_VKBD_BACKEND ?= uinput

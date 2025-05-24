@@ -415,8 +415,6 @@ struct device_event *device_read_event(struct device *dev)
 	struct input_event ev;
 	static struct device_event devev;
 
-	assert(dev->fd != -1);
-
 	if (read(dev->fd, &ev, sizeof(ev)) < 0) {
 		if (errno == EAGAIN) {
 			return NULL;
@@ -591,11 +589,7 @@ struct device_event *device_read_event(struct device *dev)
 				case BTN_8:       ev.code = KEYD_F21; break;
 				case BTN_9:       ev.code = KEYD_F22; break;
 				// 测试
-				case BTN_C:       ev.code = KEYD_BTN_C; break;
-
-				default:
-					dbg("unsupported evdev code: 0x%x\n", ev.code);
-					return NULL;
+				case BTN_C:		  ev.code = KEYD_BTN_C; break;
 			}
 		}
 

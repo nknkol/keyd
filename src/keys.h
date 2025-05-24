@@ -273,7 +273,12 @@ struct modifier {
 #define KEYD_MICMUTE           248
 //测试
 /* Gamepad Buttons - Added for Retroid Pocket Controller */
-#define KEYD_BTN_C             256
+// 在文件开头或合适位置新增这些宏定义
+#define STANDARD_KEYCODE_MAX    256
+#define CUSTOM_KEYCODE_BASE     256  
+#define CUSTOM_KEYCODE_MAX      512  // 你可以设置更大，比如1024
+// 自定义按键的范围
+#define KEYD_BTN_C              (CUSTOM_KEYCODE_BASE + 0)  
 /* These deviate from uinput codes. */
 
 #define  KEYD_NOOP             		195
@@ -290,12 +295,14 @@ struct modifier {
 #define  KEYD_FN               		254
 #define  KEYD_MOUSE_FORWARD    		255
 
-#define KEY_NAME(code) (keycode_table[code].name ? keycode_table[code].name : "UNKNOWN")
+// #define KEY_NAME(code) (keycode_table[code].name ? keycode_table[code].name : "UNKNOWN")
+#define KEY_NAME(code) get_key_name(code)
 
 int parse_modset(const char *s, uint8_t *mods);
 int parse_key_sequence(const char *s, uint8_t *code, uint8_t *mods);
 
+const char* get_key_name(uint16_t code);  // 新增这一行
 extern const struct modifier modifiers[MAX_MOD];
-extern const struct keycode_table_ent keycode_table[512];
+extern const struct keycode_table_ent keycode_table[STANDARD_KEYCODE_MAX];
 
 #endif
